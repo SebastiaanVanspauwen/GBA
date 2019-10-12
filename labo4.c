@@ -46,6 +46,7 @@ typedef struct sprite {
     int dy;
     uint8 w;  // dimensions (simple hitbox detection)
     uint8 h;
+    uint8 difficulty;
     volatile object *obj;
 } sprite;
 
@@ -152,27 +153,31 @@ volatile object* create_paddle()
     paddle_sprite->attr0 = 0x4000; // 4bpp, wide
     paddle_sprite->attr1 = 0x4000; // 32x8 met wide shape
     paddle_sprite->attr2 = 2; // vanaf de 2de tile, palet 0
-
+    next_tile_mem += 3;
     return paddle_sprite;
 }
 
-volatile object* create_blok(int index)
+volatile object* create_blok(int index,  uint16 difficulty)
 {
     // 1. kleur
     PALETTE_MEM[0][3] = get_color(0, 31, 0);
-
+    PALETTE_MEM[0][4] = get_color(0, 31, 31);
+    PALETTE_MEM[0][5] = get_color(62, 62, 62);
+    PALETTE_MEM[0][6] = get_color(62, 0, 62);
+    PALETTE_MEM[0][7] = get_color(128, 128, 0);
     // 2. tile - vanaf hieronder alles bezet tot TILE_MEM[4][6]!
-    volatile uint16 *blok_tile = (uint16*) TILE_MEM[4][next_tile_mem + 3];  // begin vanaf 2
+    volatile uint16 *blok_tile = (uint16*) TILE_MEM[4][next_tile_mem++];  // begin vanaf 2
     // vul de tile met de palet index 2 - dit is per rij, vandaar 0x2222
-    for(int i = 0; i < 4 * sizeof(tile_4bpp) / 2; i++) {
-        blok_tile[i] = 0x3333;
+    for(int i = 0; i < 4 * sizeof(tile_4bpp) / 2; i++)
+    {
+        blok_tile[i] = difficulty << 12 | difficulty << 8 | difficulty << 4 | difficulty;
     }
 
     // 3. object
     volatile object *blok_sprite = &OAM_MEM[index];
     blok_sprite->attr0 = 0x4000; // 4bpp, wide
     blok_sprite->attr1 = 0x4000; // 32x8 met wide shape
-    blok_sprite->attr2 = 6; // vanaf de 2de tile, palet 0
+    blok_sprite->attr2 = 6 + (difficulty-3) * 5; // vanaf de 2de tile, palet 0
 
     return blok_sprite;
 }
@@ -254,7 +259,8 @@ int main()
       for (int i = 0; i < 5 ; i++)
       {
         uint8 memLoc = (j * 5) + i + 2;
-        blokken[j][i] = create_sprite(create_blok(memLoc), 25 + 40 * i , 10 * j, 32, 8);
+        blokken[j][i] = create_sprite(create_blok(memLoc, 3 + j), 25 + 40 * i , 10 * j, 32, 8);
+        blokken[j][i]->difficulty = j + 1;
       }
     }
 
