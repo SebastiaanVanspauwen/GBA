@@ -141,7 +141,7 @@ volatile object* create_paddle()
     PALETTE_MEM[0][2] = get_color(31, 0, 0);
 
     // 2. tile - vanaf hieronder alles bezet tot TILE_MEM[4][6]!
-    volatile uint16 *paddle_tile = (uint16*) TILE_MEM[4][2];  // begin vanaf 2
+    volatile uint16 *paddle_tile = (uint16*) TILE_MEM[4][next_tile_mem++];  // begin vanaf 2
     // vul de tile met de palet index 2 - dit is per rij, vandaar 0x2222
     for(int i = 0; i < 4 * sizeof(tile_4bpp) / 2; i++) {
         paddle_tile[i] = 0x2222;
@@ -162,7 +162,7 @@ volatile object* create_blok(int index)
     PALETTE_MEM[0][3] = get_color(0, 31, 0);
 
     // 2. tile - vanaf hieronder alles bezet tot TILE_MEM[4][6]!
-    volatile uint16 *blok_tile = (uint16*) TILE_MEM[4][6];  // begin vanaf 2
+    volatile uint16 *blok_tile = (uint16*) TILE_MEM[4][next_tile_mem + 3];  // begin vanaf 2
     // vul de tile met de palet index 2 - dit is per rij, vandaar 0x2222
     for(int i = 0; i < 4 * sizeof(tile_4bpp) / 2; i++) {
         blok_tile[i] = 0x3333;
@@ -183,7 +183,7 @@ volatile object* create_ball()
     PALETTE_MEM[0][1] = get_color(31, 31, 31); // wit - zie labo 3
 
     // 2. tile
-    volatile uint16 *ball_tile = (uint16*) TILE_MEM[4][1];  // 1 block
+    volatile uint16 *ball_tile = (uint16*) TILE_MEM[4][next_tile_mem++];  // 1 block
     // vul de tile met de palet index 1 - dit is per rij, vandaar 0x1111
     for(int i = 0; i < sizeof(tile_4bpp) / 2; i++) {
         ball_tile[i] = 0x1111;
@@ -219,9 +219,6 @@ void resetGame(sprite *ball, sprite *paddle, int outer, int inner, sprite *blokk
       position(blokken[j][i]);
     }
   }
-
-
-
 }
 
 void initScreen()
