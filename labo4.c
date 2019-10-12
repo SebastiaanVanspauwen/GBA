@@ -46,7 +46,8 @@ typedef struct sprite {
     int dy;
     uint8 w;  // dimensions (simple hitbox detection)
     uint8 h;
-    uint8 difficulty;
+    //not unsigned, can be negative
+    short difficulty;
     volatile object *obj;
 } sprite;
 
@@ -162,9 +163,10 @@ volatile object* create_blok(int index,  uint16 difficulty)
     // 1. kleur
     PALETTE_MEM[0][3] = get_color(0, 31, 0);
     PALETTE_MEM[0][4] = get_color(0, 31, 31);
-    PALETTE_MEM[0][5] = get_color(62, 62, 62);
+    PALETTE_MEM[0][5] = get_color(62, 40, 62);
     PALETTE_MEM[0][6] = get_color(62, 0, 62);
-    PALETTE_MEM[0][7] = get_color(128, 128, 0);
+    PALETTE_MEM[0][7] = get_color(100, 100, 0);
+    PALETTE_MEM[0][8] = get_color(100, 100, 100);
     // 2. tile - vanaf hieronder alles bezet tot TILE_MEM[4][6]!
     volatile uint16 *blok_tile = (uint16*) TILE_MEM[4][next_tile_mem++];  // begin vanaf 2
     // vul de tile met de palet index 2 - dit is per rij, vandaar 0x2222
@@ -220,6 +222,7 @@ void resetGame(sprite *ball, sprite *paddle, int outer, int inner, sprite *blokk
     {
       blokken[j][i]->x = 25 + 40 * i;
       blokken[j][i]->y = 10 * j;
+      blokken[j][i]->difficulty = 20 - 5*j;
       unhide(blokken[j][i]);
       position(blokken[j][i]);
     }
@@ -260,7 +263,8 @@ int main()
       {
         uint8 memLoc = (j * 5) + i + 2;
         blokken[j][i] = create_sprite(create_blok(memLoc, 3 + j), 25 + 40 * i , 10 * j, 32, 8);
-        blokken[j][i]->difficulty = j + 1;
+        uint16 dif = 4 - j;
+        blokken[j][i]->difficulty = 20 - 5*j;
       }
     }
 
@@ -301,11 +305,15 @@ int main()
         {
           for(int yRow = 0; yRow < 5; yRow++)
           {
-            sprite *obj = blokken[yRow][xRow];
-            if(collides(ball, obj) && !isHidden(obj))
+            sprite *s = blokken[yRow][xRow];
+            if(collides(ball, s) && !isHidden(s))
             {
-                hide(obj);
-                ball->dy = -ball->dy;
+              ball->dy = -ball->dy;
+              s->difficulty = s->difficulty - 1;
+              if(s->difficulty <= 0)
+              {
+                hide(s);
+              }
             }
           }
         }
