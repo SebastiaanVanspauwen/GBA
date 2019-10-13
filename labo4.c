@@ -119,6 +119,7 @@ void velocity(sprite *s)
   s->y = s->y > SCREEN_HEIGHT - s->h ? SCREEN_HEIGHT - s->h  : s->y;
 }
 
+//(ball, object)
 int collides(sprite *s, sprite *o)
 {
     uint8 x1 = s->x;
@@ -129,10 +130,15 @@ int collides(sprite *s, sprite *o)
     uint8 w2 = o->w;
     uint8 h1 = s->h;
     uint8 h2 = o->h;
-    // http://image.diku.dk/projects/media/kirk.06.pdf#page=37
-    if (x1 < x2 + w2 & x2 < x1 + w1 & y1 < y2 + h2 & y2 < y1 + h1)
+
+    //Hit from above or below
+    if(x1 + w1 > x2 && x2 + w2 > x1 && y1 + h1 > y2 && y2 + h2 > y1)
     {
       return 1;
+    }
+    else if((x1 + w1 == x2 || x2 + w2 == x1) && y1 + h1 > y2 && y2 + h2 > y1)
+    {
+      return 2;
     }
     return 0;
 }
@@ -161,12 +167,11 @@ volatile object* create_paddle()
 volatile object* create_blok(int index,  uint16 difficulty)
 {
     // 1. kleur
-    PALETTE_MEM[0][3] = get_color(0, 31, 0);
-    PALETTE_MEM[0][4] = get_color(0, 31, 31);
-    PALETTE_MEM[0][5] = get_color(62, 40, 62);
-    PALETTE_MEM[0][6] = get_color(62, 0, 62);
-    PALETTE_MEM[0][7] = get_color(100, 100, 0);
-    PALETTE_MEM[0][8] = get_color(100, 100, 100);
+    PALETTE_MEM[0][3] = get_color(90, 0, 0);
+    PALETTE_MEM[0][4] = get_color(90, 62, 5);
+    PALETTE_MEM[0][5] = get_color(255, 125, 0);
+    PALETTE_MEM[0][6] = get_color(31, 31, 0);
+    PALETTE_MEM[0][7] = get_color(0, 31, 0);
     // 2. tile - vanaf hieronder alles bezet tot TILE_MEM[4][6]!
     volatile uint16 *blok_tile = (uint16*) TILE_MEM[4][next_tile_mem++];  // begin vanaf 2
     // vul de tile met de palet index 2 - dit is per rij, vandaar 0x2222
@@ -222,7 +227,8 @@ void resetGame(sprite *ball, sprite *paddle, int outer, int inner, sprite *blokk
     {
       blokken[j][i]->x = 25 + 40 * i;
       blokken[j][i]->y = 10 * j;
-      blokken[j][i]->difficulty = 20 - 5*j;
+      blokken[j][i]->difficulty = 4 - j;
+      blokken[j][i]->obj->attr2 = 6 + (3 + j -3) * 5;
       unhide(blokken[j][i]);
       position(blokken[j][i]);
     }
@@ -264,7 +270,7 @@ int main()
         uint8 memLoc = (j * 5) + i + 2;
         blokken[j][i] = create_sprite(create_blok(memLoc, 3 + j), 25 + 40 * i , 10 * j, 32, 8);
         uint16 dif = 4 - j;
-        blokken[j][i]->difficulty = 20 - 5*j;
+        blokken[j][i]->difficulty = 4 - j;
       }
     }
 
@@ -290,9 +296,17 @@ int main()
             ball->dx = -ball->dx;
         }
         //y boundaries
-        if(ball->y <= 0 || collides(ball, paddle))
+        if(ball->y <= 0)
         {
             ball->dy = -ball->dy;
+        }
+        if(collides(ball, paddle))
+        {
+            ball->dy = -ball->dy;
+        }
+        if(collides(ball, paddle) == 2)
+        {
+            ball->dx = -ball->dx;
         }
         //missed paddle
         if(ball->y >= (SCREEN_HEIGHT - ball->h))
@@ -306,13 +320,25 @@ int main()
           for(int yRow = 0; yRow < 5; yRow++)
           {
             sprite *s = blokken[yRow][xRow];
-            if(collides(ball, s) && !isHidden(s))
+            if(collides(ball, s) > 0 && !isHidden(s))
             {
-              ball->dy = -ball->dy;
+              switch(collides(ball, s))
+              {
+                case 1:
+                  ball->dy = -ball->dy;
+                  break;
+                case 2:
+                  ball->dx = -ball->dx;
+                  break;
+              }
               s->difficulty = s->difficulty - 1;
               if(s->difficulty <= 0)
               {
                 hide(s);
+              }
+              else
+              {
+                s->obj->attr2 = 6 + (3 + s->difficulty - 3) * 5;
               }
             }
           }
